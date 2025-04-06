@@ -62,7 +62,7 @@ const SignUp = () => {
         model: "gemini-2.0-flash",
         contents: [
           createUserContent([ 
-            "Retrieve the Aadhar card number and simply return only the number without any other extra text",
+            "Retrieve the Aadhar card number and simply return only the number without any other extra text Also check if the image is a proper aadhar card or no if the image is not a proper aadhar card then return an error",
             createPartFromUri(imageUri, imageMimeType),
           ]),
         ],

@@ -200,9 +200,9 @@ const SnippetTool = ({ onCapture, setIsOpen, setChat, onClose, triggerSnipping }
         <>
           {/* Capture Options Panel - Appears First */}
           {captureMode === null && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex justify-center items-center">
+            <div className="z-50 fixed inset-0 bg-black bg-opacity-50 z-[9999] flex justify-center items-center">
               <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
-                <h2 className="text-white text-lg mb-4">Choose Capture Mode:</h2>
+                <h2 className="text-white text-center text-lg mb-4">Choose Mode</h2>
                 <div className="flex gap-4">
                   <button
                     onClick={startSelectionSnipping}
@@ -211,12 +211,12 @@ const SnippetTool = ({ onCapture, setIsOpen, setChat, onClose, triggerSnipping }
                     Capture Selection
                   </button>
           
-                  <button
+                  {/* <button
                     onClick={handleCaptureElement}
                     className="px-4 py-2 bg-green-500 text-white rounded"
                   >
                     Capture Element
-                  </button>
+                  </button> */}
                 </div>
               </div>
             </div>

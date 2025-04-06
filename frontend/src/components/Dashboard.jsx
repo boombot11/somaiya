@@ -13,6 +13,7 @@ import Kanban from "./Kanban";
 import ConsultantChat from "./ConsultantChat";
 import UserChat from "./UserChat";
 import JitsiMeeting from "./Meet";
+import TaxManager from "./TaxManager";
 
 const Dashboard = () => {
   const [openSidebar, setOpenSidebar] = useState(true);
@@ -227,25 +228,25 @@ const Dashboard = () => {
   </div>
 </div>
 
-
-              {selectedRole === "user" ? (
-                <>
-                <UserChat />
-                <JitsiMeeting></JitsiMeeting>
-                </>
-              ) : selectedRole === "consultant" ? (
-                <>
-                <ConsultantChat />
-                <JitsiMeeting>  </JitsiMeeting>
-                </>
-                
-              ) : null}
+<div>
+  {selectedRole === "user" ? (
+    <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6 m-4 shadow-lg">
+      <UserChat />
+      <JitsiMeeting />
+    </div>
+  ) : selectedRole === "consultant" ? (
+    <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6 m-4 shadow-lg">
+      <ConsultantChat />
+      <JitsiMeeting />
+    </div>
+  ) : null}
+</div>
             </div>
           )}
 
           {selectedContent === "faq" && (
-            <div className="text-white mt-4">
-              <p>Here is your FAQ Page content...</p>
+            <div className="text-white z-50 mt-4 overflow-y-scroll">
+             <TaxManager />
             </div>
           )}
         </div>

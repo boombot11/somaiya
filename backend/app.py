@@ -44,6 +44,158 @@ app = Flask(__name__)
 # Enable CORS for all routes
 CORS(app)
 
+
+def get_gemini_response(data):
+    prompt = f"""
+You are a smart AI assistant helping people understand financial records, especially whether a transaction is tax-deductible or not.
+
+Please review the given data and do the following:
+
+1. For each **transaction**, determine:
+    - ✅ Whether it is Tax-Deductible or ❌ Not Deductible
+    - A simple explanation (like "ATM withdrawals are usually personal and not related to business.")
+    - One short tax-saving tip if applicable
+
+Use this format for each transaction:
+Transaction: [Short Description]  
+✅ Tax-Deductible or ❌ Not Deductible  
+Why: [Simple Explanation]  
+Tip: [One-liner advice if possible]
+
+2. If you find **non-transactional text** (such as notes, summaries, income details, or general descriptions), analyze it briefly in everyday language. 
+Explain what it means and mention if it might be relevant for taxes (e.g., income notes, deductions, reimbursements, donations, etc.)
+
+Keep all responses short, clear, and helpful for a non-expert. Here's the data to analyze:
+{data}
+"""
+    response = genai.GenerativeModel('gemini-2.0-flash').generate_content([prompt])
+    return response.text
+
+
+
+
+def generate_graph_data(data):
+    graph_data = []
+    for entry in data:
+        name = entry['description']
+        amt = entry.get('withdrawals', entry.get('deposits', 0))
+        uv = amt
+        pv = amt * 0.6
+        graph_data.append({
+            'name': name,
+            'uv': uv,
+            'pv': pv,
+            'amt': amt
+        })
+    return graph_data
+
+
+def extract_data_from_image(image_file_path):
+    return [
+        { "date": "03-10-16", "description": "ATMW", "withdrawals": 21.25 },
+        { "date": "03-10-16", "description": "ATMF", "withdrawals": 1.50 },
+        { "date": "03-10-20", "description": "DEBP", "withdrawals": 2.99 },
+        { "date": "03-10-21", "description": "WEBP", "withdrawals": 300.00 },
+        { "date": "03-10-22", "description": "ATMW", "withdrawals": 100.00 },
+        { "date": "03-10-23", "description": "DEBP", "withdrawals": 29.08 },
+        { "date": "03-10-24", "description": "DEBR", "deposits": 2.99 },
+        { "date": "03-10-27", "description": "TELP", "withdrawals": 6.77 },
+        { "date": "03-10-28", "description": "PYRL", "deposits": 694.81 },
+        { "date": "03-10-30", "description": "WEBT", "deposits": 50.00 }
+    ]
+
+
+def extract_data_from_text(text):
+    lines = text.strip().splitlines()
+    data = []
+    for line in lines:
+        parts = line.split(',')
+        if len(parts) < 3:
+            continue
+        date, description, amount = parts[0].strip(), parts[1].strip(), parts[2].strip()
+        try:
+            amt_val = float(amount)
+        except ValueError:
+            continue
+        if amt_val < 0:
+            data.append({'date': date, 'description': description, 'withdrawals': abs(amt_val)})
+        else:
+            data.append({'date': date, 'description': description, 'deposits': amt_val})
+    return data
+
+
+def process_text_input(content):
+    lines = content.strip().split("\n")
+    parsed = []
+    for line in lines:
+        parts = line.strip().split()
+        if len(parts) < 3:
+            continue
+        date = parts[0]
+        desc = " ".join(parts[1:-1])
+        amount_str = parts[-1].replace("$", "").replace(",", "")
+        try:
+            amount = float(amount_str)
+            if "deposit" in desc.lower() or "refund" in desc.lower():
+                parsed.append({"date": date, "description": desc, "deposits": amount})
+            else:
+                parsed.append({"date": date, "description": desc, "withdrawals": amount})
+        except ValueError:
+            continue
+    return parsed
+@app.route('/insights', methods=['POST'])
+def analyze_image_and_text():
+    try:
+        attachment = request.files.get('attachment')
+        message = request.form.get('message')
+
+        if not attachment and not message:
+            return jsonify({'error': 'No message or attachment provided'}), 400
+
+        extracted_data = []
+
+        if attachment:
+            filename = attachment.filename.lower()
+
+            if filename.endswith(('.png', '.jpg', '.jpeg')):
+                extracted_data = extract_data_from_image(attachment)
+
+            elif filename.endswith(('.txt', '.csv')):
+                file_content = attachment.read().decode('utf-8')
+                extracted_data = extract_data_from_text(file_content)
+
+            elif filename.endswith('.pdf'):
+                # Save the uploaded PDF temporarily
+                timestamp = datetime.now()
+                file_name = f"{os.path.splitext(attachment.filename)[0]}_{timestamp.strftime('%d-%m-%y')}.pdf"
+                file_path = os.path.join('uploads', file_name)
+                attachment.save(file_path)
+
+                # Extract text and process like text
+                pdf_text = get_pdf_text(file_path)
+                extracted_data = extract_data_from_text(pdf_text)
+
+            else:
+                return jsonify({'error': 'Unsupported file type'}), 400
+
+        elif message:
+            extracted_data = extract_data_from_text(message)
+
+        # Gemini analysis
+        gemini_response = get_gemini_response(extracted_data)
+
+        # Graph data
+        graph_data = generate_graph_data(extracted_data)
+
+        return jsonify({
+            'gemini_response': gemini_response,
+            'graph_data': graph_data
+        })
+
+    except Exception as e:
+        print(f"Error processing request: {e}")
+        return jsonify({'error': str(e)}), 500
+
 def get_pdf_text(pdf_path):
     """Extract text from a given PDF."""
     text = ""
@@ -51,6 +203,8 @@ def get_pdf_text(pdf_path):
     for page in pdf_reader.pages:
         text += page.extract_text()
     return text
+# Configure the Gemini API with API key from environment variables
+genai.configure(api_key="AIzaSyDckR-YVG5ghGYo2LBu7okmpp2eqxVWLQY")
 
 def query_gemini(data):
     """Create a custom prompt and query the Gemini API for analysis."""
@@ -72,13 +226,17 @@ def query_gemini(data):
     Tax Optimization Strategy: [Brief suggestion for tax-saving strategies]
     """
 
-    # Send the prompt to Gemini API using chat interface
-    chat = genai.Client(api_key=os.getenv("GEMINI_API_KEY")).chats.create(model="gemini-2.0-flash")
-    response = chat.send_message(prompt)
+    # Send the prompt to Gemini API using the correct method
+    try:
+        model = genai.GenerativeModel("gemini-2.0-flash")  # You can use gemini-1.5-pro if needed
+        response = model.generate_content(prompt)
+        return response.text
+        # Return the response text
+        return response.text
 
-    # Return the response text
-    return response.text
-
+    except Exception as e:
+        print(f"Error interacting with Gemini API: {e}")
+        return "Failed to connect to Gemini."
 @app.route('/api/whisper-transcribe', methods=['POST'])
 def transcribe_audio():
     try:

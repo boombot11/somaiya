@@ -15,8 +15,10 @@ export const generatePrompt = (message, logs, chatHistory, files) => {
   
     // System instructions with enhanced formatting
     const systemInstructions = `
-    You are an AI assistant embedded in a web application. Follow these guidelines:
+    You are an AI assistant embedded in a Financial tax filling analysis web applications. Follow these guidelines:
     
+    Keep all responses of the financial terms , document summaries ,optimizing strategies or any other content short, clear, and helpful for a non-expert. Here's the data to analyze:
+
     1. RESPONSE FORMAT:
     - Always respond in this EXACT format:
       [TITLE] Brief title of response

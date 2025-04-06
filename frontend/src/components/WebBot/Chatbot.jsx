@@ -166,172 +166,170 @@ useEffect(() => {
   };
 
   // Message handling
- // In your sendMessage function, replace it with this:
- const sendMessage = async (msg = message) => {
-  if ((msg.trim().length === 0) && files.length === 0) return;
-
-  // Create user message object
-  const userMessage = {
-    role: 'user',
-    content: {
-      title: 'You',
-      content: msg,
-      actions: [],
-      links: []
-    },
-    ...(imageUrl && { imageUrl }),
-    ...(files.length > 0 && { files: files.map(f => f.name) }) // Track file names
-  };
-
-  // Add user message to chat history immediately
-  addChatMessage(userMessage);
-  if (msg === message) setMessage('');
-  setIsProcessing(true);
-
-  try {
-    // Generate system prompt with full context
-    const { system, user } = generatePrompt(msg, logs, chatHistory, files);
-    
-    // Prepare conversation history for the API
-    const conversationHistory = chatHistory.map(msg => {
-      if (msg.role === 'user') {
-        return {
-          role: 'user',
-          parts: [{ text: msg.content.content }]
-        };
-      } else {
-        return {
-          role: 'model',
-          parts: [{ text: typeof msg.content === 'string' ? msg.content : msg.content.content }]
-        };
-      }
-    });
-
-    // Process all files (images and documents)
-    const fileParts = await Promise.all(files.map(async (file) => {
-      try {
-        if (file.type.startsWith('image/')) {
-          return {
-            inlineData: {
-              mimeType: file.type,
-              data: await blobToBase64(file)
-            }
-          };
-        } else if (file.type === 'application/pdf' || 
-                  file.type === 'text/plain' || 
-                  file.type.includes('document')) {
-          // For text-based files, extract text content
-          const textContent = await extractTextFromFile(file);
-          return {
-            text: `FILE_CONTENT: ${file.name}\n${textContent.slice(0, 10000)}` // Limit to 10k chars
-          };
-        } else {
-          // For unsupported files, just send metadata
-          return {
-            text: `FILE_METADATA: ${file.name} (${file.type}, ${formatFileSize(file.size)})`
-          };
-        }
-      } catch (error) {
-        console.error(`Error processing file ${file.name}:`, error);
-        return {
-          text: `FILE_ERROR: Failed to process ${file.name}`
-        };
-      }
-    }));
-
-    // Check for graph data requests
-    const graphDataRequest = msg.match(/fetch (data_[a-c])/i);
-    let graphData = null;
-    
-    if (graphDataRequest) {
-      graphData = await fetchGraphData(graphDataRequest[1]);
-    }
-    
-    // Construct the API request with all content
-    const requestPayload = {
-      contents: [
-        // System prompt comes first
-        {
-          role: 'user',
-          parts: [{ text: system }]
-        },
-        // Then the conversation history
-        ...conversationHistory,
-        // Then the current user message with all parts
-        {
-          role: 'user',
-          parts: [
-            { text: user },
-            ...(graphData ? [{ text: `GRAPH DATA:\n${JSON.stringify(graphData)}` }] : []),
-            ...(imageData ? [{
-              inlineData: {
-                mimeType: imageData.type || 'image/png',
-                data: await blobToBase64(imageData)
-              }
-            }] : []),
-            ...fileParts
-          ]
-        }
-      ]
-    };
-
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyAl7F82I8xPECmKHWxa3kuDpFlZZFPRkBE`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestPayload)
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-
-    const data = await response.json();
-    const rawResponse = data?.candidates?.[0]?.content?.parts?.[0]?.text || 
-                      "Sorry, I couldn't process your request.";
-    
-    const parsedResponse = parseStructuredResponse(rawResponse);
-    
-    addChatMessage({
-      role: 'assistant',
+  const sendMessage = async (msg = message) => {
+    const userMsg = typeof msg === 'string' ? msg : String(msg?.content || msg || '');
+  
+    if (userMsg.trim().length === 0 && files.length === 0) return;
+    console.log(msg+":::"+message)
+    // Create user message object
+    const userMessage = {
+      role: 'user',
       content: {
-        title: 'Assistant',
-        content: parsedResponse.content || parsedResponse,
-        actions: parsedResponse.actions || [],
-        links: parsedResponse.links || [],
-        ...(files.length > 0 && { files: files.map(f => f.name) }) // Include files in response context
-      }
-    });
-
-    // Clear files after successful processing
-    setFiles([]);
-    setImageUrl(null);
-    setImageData(null);
-    setSnippetImage(null);
-
-  } catch (error) {
-    console.error('Error sending message:', error);
-    addChatMessage({
-      role: 'assistant',
-      content: {
-        title: 'Error',
-        content: `I encountered an error: ${error.message}`,
-        actions: [
-          "Check your internet connection",
-          "Try again with smaller files",
-          "Contact support if it persists"
-        ],
+        title: 'You',
+        content: userMsg,
+        actions: [],
         links: []
+      },
+      ...(imageUrl && { imageUrl }),
+      ...(files.length > 0 && { files: files.map(f => f.name) }) // Track file names
+    };
+  
+    // Add user message to chat history immediately
+    addChatMessage(userMessage);
+    if (msg === message) setMessage('');
+    setIsProcessing(true);
+  
+    try {
+      // Generate system prompt with full context
+      const { system, user } = generatePrompt(userMsg, logs, chatHistory, files);
+  
+      // Prepare conversation history for the API
+      const conversationHistory = chatHistory.map(msg => ({
+        role: msg.role,
+        parts: [{ text: msg.content.content }]
+      }));
+  
+      // Process all files (images and documents)
+      const fileParts = await Promise.all(files.map(async (file) => {
+        try {
+          if (file.type.startsWith('image/')) {
+            return {
+              inlineData: {
+                mimeType: file.type,
+                data: await blobToBase64(file)
+              }
+            };
+          } else if (file.type === 'application/pdf' ||
+                    file.type === 'text/plain' ||
+                    file.type.includes('document')) {
+            const textContent = await extractTextFromFile(file);
+            return {
+              text: `FILE_CONTENT: ${file.name}\n${textContent.slice(0, 10000)}`
+            };
+          } else {
+            return {
+              text: `FILE_METADATA: ${file.name} (${file.type}, ${formatFileSize(file.size)})`
+            };
+          }
+        } catch (error) {
+          console.error(`Error processing file ${file.name}:`, error);
+          return {
+            text: `FILE_ERROR: Failed to process ${file.name}`
+          };
+        }
+      }));
+  
+      // Extract necessary data from imageData to avoid circular references
+      let imagePart = [];
+      if (imageData) {
+        const base64Image = await blobToBase64(imageData);
+        imagePart = [{
+          inlineData: {
+            mimeType: imageData.type || 'image/png',
+            data: base64Image
+          }
+        }];
       }
-    });
-    addLog(`API Error: ${error.message}`);
-  } finally {
-    setIsProcessing(false);
-  }
-};
-
+  
+      // Construct the API request with all content
+      const requestPayload = {
+        contents: [
+          { role: 'user', parts: [{ text: system }] },
+          ...conversationHistory,
+          {
+            role: 'user',
+            parts: [
+              { text: user },
+              ...imagePart,
+              ...fileParts
+            ]
+          }
+        ]
+      };
+  
+      // Stringify with a replacer to handle circular references
+      const payloadString = JSON.stringify(requestPayload, getCircularReplacer());
+  
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyDckR-YVG5ghGYo2LBu7okmpp2eqxVWLQY`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payloadString
+        }
+      );
+  
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+  
+      const data = await response.json();
+      const rawResponse = data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+                          "Sorry, I couldn't process your request.";
+      console.log(rawResponse)
+      const parsedResponse = parseStructuredResponse(rawResponse);
+  
+      addChatMessage({
+        role: 'assistant',
+        content: {
+          title: 'Assistant',
+          content: parsedResponse.content || parsedResponse,
+          actions: parsedResponse.actions || [],
+          links: parsedResponse.links || [],
+          ...(files.length > 0 && { files: files.map(f => f.name) })
+        }
+      });
+  
+      setFiles([]);
+      setImageUrl(null);
+      setImageData(null);
+      setSnippetImage(null);
+  
+    } catch (error) {
+      console.error('Error sending message:', error);
+      addChatMessage({
+        role: 'assistant',
+        content: {
+          title: 'Error',
+          content: `I encountered an error: ${error.message}`,
+          actions: [
+            "Check your internet connection",
+            "Try again with smaller files",
+            "Contact support if it persists"
+          ],
+          links: []
+        }
+      });
+      addLog(`API Error: ${error.message}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+  
+  // Helper function to handle circular references
+  const getCircularReplacer = () => {
+    const seen = new WeakSet();
+    return (key, value) => {
+      if (typeof value === "object" && value !== null) {
+        if (seen.has(value)) {
+          return;
+        }
+        seen.add(value);
+      }
+      return value;
+    };
+  };
+  
 const extractTextFromFile = (file) => {
   return new Promise((resolve, reject) => {
     if (file.type === 'application/pdf') {

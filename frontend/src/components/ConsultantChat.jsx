@@ -142,7 +142,7 @@ const ConsultantChat = () => {
           {consultants.map((consultant, idx) => (
             <div
               key={idx}
-              className="border border-gray-300 p-6 rounded-lg shadow-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition duration-300"
+              className="border border-gray-300 bg-white/70 p-6 rounded-lg shadow-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition duration-300"
               onClick={() => handleConsultantClick(consultant)}
             >
               <h3 className="text-xl font-semibold text-gray-800 dark:text-white">{consultant.name}</h3>
