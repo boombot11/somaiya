@@ -15,7 +15,9 @@ const Chatbot = () => {
       setAttachment(file);
       setAttachmentType(file.type);
       setAttachmentPreview(
-        file.type.startsWith("image/") ? URL.createObjectURL(file) : file.name
+        file.type.startsWith("image/")
+          ? URL.createObjectURL(file)
+          : file.name
       );
     }
   };
@@ -36,20 +38,26 @@ const Chatbot = () => {
         return response.json();
       })
       .then((data) => {
-        setGeminiResponse(data.gemini_response);
-        setMessages([
-          ...messages,
-          {
-            text: message,
-            attachment: attachmentPreview,
-            attachmentType,
-            fromUser: true,
-          },
-        ]);
+        const newUserMsg = {
+          text: message || "",
+          attachment: attachmentPreview,
+          attachmentType,
+          fromUser: true,
+        };
+
+        const newGeminiMsg = {
+          text: data.gemini_response,
+          fromUser: false,
+        };
+
+        setMessages((prev) => [...prev, newUserMsg, newGeminiMsg]);
+
+        // Reset state
         setMessage("");
         setAttachment(null);
         setAttachmentPreview(null);
         setAttachmentType("");
+        setGeminiResponse(data.gemini_response);
       })
       .catch((error) => {
         console.error("Error:", error);
@@ -59,42 +67,47 @@ const Chatbot = () => {
 
   return (
     <div className="flex-1 flex h-[80vh] flex-col p-6 relative">
-      {/* Chat Area */}
-      <div className="flex-1 overflow-y-scroll p-6 space-y-6">
+      {/* Chat area */}
+      <div className="flex-1 min-h-0 overflow-y-scroll p-6 space-y-6">
         {messages.map((msg, index) => (
           <div
             key={index}
             className={`flex items-start space-x-4 ${
-              msg.fromUser ? "justify-end" : ""
+              msg.fromUser ? "justify-end" : "justify-start"
             }`}
           >
-            {msg.attachment ? (
-              <div className="max-w-[70%]">
-                {msg.attachmentType.startsWith("image") ? (
-                  <img
-                    src={msg.attachment}
-                    alt="uploaded"
-                    className="rounded-xl"
-                  />
-                ) : (
-                  <div className="bg-gray-200 p-4 rounded-xl text-center">
-                    {msg.attachmentType === "application/pdf" ? (
-                      <span className="text-blue-500">PDF Document</span>
-                    ) : msg.attachmentType === "text/csv" ? (
-                      <span className="text-green-500">CSV File</span>
-                    ) : msg.attachmentType === "text/plain" ? (
-                      <span className="text-yellow-500">Text File</span>
-                    ) : (
-                      <span className="text-gray-500">File</span>
-                    )}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="bg-purple-700 text-white p-4 rounded-xl max-w-[70%]">
-                {msg.text}
-              </div>
-            )}
+            <div className="max-w-[70%]">
+              {msg.text && (
+                <div
+                  className={`${
+                    msg.fromUser
+                      ? "bg-purple-700 text-white"
+                      : "bg-neutral-700 text-white"
+                  } p-4 rounded-xl mb-2`}
+                >
+                  {msg.text}
+                </div>
+              )}
+              {msg.attachment && (
+                <div className="bg-gray-200 p-4 rounded-xl text-center">
+                  {msg.attachmentType?.startsWith("image/") ? (
+                    <img
+                      src={msg.attachment}
+                      alt="uploaded"
+                      className="rounded-xl"
+                    />
+                  ) : msg.attachmentType === "application/pdf" ? (
+                    <span className="text-blue-500">PDF Document</span>
+                  ) : msg.attachmentType === "text/csv" ? (
+                    <span className="text-green-500">CSV File</span>
+                  ) : msg.attachmentType === "text/plain" ? (
+                    <span className="text-yellow-500">Text File</span>
+                  ) : (
+                    <span className="text-gray-500">File</span>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -155,14 +168,6 @@ const Chatbot = () => {
               Remove
             </button>
           </div>
-        </div>
-      )}
-
-      {/* Gemini Response */}
-      {geminiResponse && (
-        <div className="mt-4 p-4 bg-gray-700 text-white rounded-xl">
-          <strong>Gemini Response:</strong>
-          <pre className="whitespace-pre-wrap mt-2">{geminiResponse}</pre>
         </div>
       )}
     </div>
