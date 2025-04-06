@@ -12,7 +12,7 @@ from google import genai
 load_dotenv()
 
 # Configure the Gemini API client
-API_KEY = os.getenv("GEMINI_API_KEY")
+API_KEY = "AIzaSyDckR-YVG5ghGYo2LBu7okmpp2eqxVWLQY"
 client = genai.Client(api_key=API_KEY)
 
 def get_pdf_text(pdf_path):

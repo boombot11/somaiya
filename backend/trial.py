@@ -8,7 +8,7 @@ from google import genai
 load_dotenv()
 
 # Configure the Google Gemini API
-API_KEY = os.getenv("GEMINI_API_KEY")
+API_KEY = "AIzaSyDckR-YVG5ghGYo2LBu7okmpp2eqxVWLQY"
 client = genai.Client(api_key=API_KEY)
 
 # Function to send data to Gemini and get a response (Updated to use genai Client)

@@ -11,6 +11,7 @@ import FloatingButton from './components/FloatingButton';
 import WebBot from './components/WebBot/Chatbot';
 import { LogProvider } from './components/contexts/LogContext';
 import { UrlProvider } from './components/contexts/urlContext';
+import TaxManager from './components/TaxManager';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
           <Route path="/signup" element={<SignUp />} />
           <Route path="/chatbot" element={<Chatbot />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/Doc" element={<TaxManager />} />
         </Routes>
 
         {/* Render the FloatingButton component on all pages */}
