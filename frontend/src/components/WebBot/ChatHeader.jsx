@@ -12,7 +12,7 @@ const ChatHeader = ({ onClose }) => (
     alignItems: 'center',
     cursor: 'move'
   }}>
-    <h3 className='pr-6' style={{ margin: 0, fontSize: '16px' }}>AI Assistant</h3>
+    <h3 className='pr-6' style={{ margin: 0, fontSize: '16px',zIndex:49 }}>AI Assistant</h3>
     <button 
       className="close-button no-drag"
       style={{
@@ -24,7 +24,7 @@ const ChatHeader = ({ onClose }) => (
       }}
       onClick={onClose}
     >
-      <FaTimes className="h-5 w-5"/>
+      <FaTimes className="h-5 z-50 w-5"/>
     </button>
   </div>
 );

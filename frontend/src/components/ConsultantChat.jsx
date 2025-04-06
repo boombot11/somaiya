@@ -29,7 +29,7 @@ const ConsultantChat = () => {
       intervalId = setInterval(() => {
         loadPreviousMessages(user);
         listenToMessages();
-      }, 3000); // 3000ms = 3 seconds
+      }, 1000); // 3000ms = 3 seconds
     }
 
     // Clean up the interval when the component unmounts or when dependencies change

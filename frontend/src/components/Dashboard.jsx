@@ -14,6 +14,7 @@ import ConsultantChat from "./ConsultantChat";
 import UserChat from "./UserChat";
 import JitsiMeeting from "./Meet";
 import TaxManager from "./TaxManager";
+import Calculators from "./Calculator";
 
 const Dashboard = () => {
   const [openSidebar, setOpenSidebar] = useState(true);
@@ -113,6 +114,15 @@ const Dashboard = () => {
                       <HelpOutlineIcon className="scale-80 opacity-75" />
                       FAQ page
                     </li>
+                    <li
+                      className={`pl-6 text-white/80 flex gap-1 select-none py-2 px-4 rounded-lg hover:bg-neutral-700/50 cursor-pointer ${
+                        selectedContent === "Calculator" ? "bg-neutral-700/60" : ""
+                      }`}
+                      onClick={() => handleItemClick("Calculator")}
+                    >
+                      <HelpOutlineIcon className="scale-80 opacity-75" />
+                      Calculator
+                    </li>
                   </ul>
                 </div>
                 <hr className="my-4 border-neutral-600 opacity-90 relative top-28" />
@@ -196,6 +206,11 @@ const Dashboard = () => {
           {selectedContent === "kanban" && (
             <div className="text-white mt-4">
               <Kanban />
+            </div>
+          )}
+           {selectedContent === "Calculator" && (
+            <div className="z-50 text-white mt-4">
+              <Calculators />
             </div>
           )}
           {selectedContent === "social" && (
